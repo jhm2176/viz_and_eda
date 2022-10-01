@@ -1,2 +1,2 @@
 # viz_and_eda
-Visualization and EDA
+Visualization and EDA lectures
