@@ -102,7 +102,7 @@ weather_df %>%
 weather_df %>%
   ggplot(aes(x = tmin, y = tmax, alpha = tmin, color = name)) + #set alpha to x in first line, transparency now depends on x. Can link aesthetics to variables here or define globally below.
   geom_point() + 
-  geom_smooth(se = FALSE, size = 2) +
+  geom_smooth(se = FALSE, size = 2)
  
 ```
 
@@ -143,7 +143,7 @@ weather_df %>%
 
 ### Histograms
 Histograms are really great. Simple histogram:
-```{r}
+```{r histogram}
 weather_df %>%
   ggplot(aes(x = tmin)) +
   geom_histogram()
@@ -151,7 +151,7 @@ weather_df %>%
 
 Histogram with some fancy features:
 
-```{r}
+```{r fancy histogram}
 weather_df %>%
   ggplot(aes(x = tmin, fill = name)) + #add color by city name
   geom_histogram(position = "dodge") + #separate bars instead of default overlaying
@@ -161,7 +161,7 @@ weather_df %>%
 ### Density plots
 Let's try a new geometry! Density plots are like smooth histograms:
 
-```{r}
+```{r density plot}
 weather_df %>%
   ggplot(aes(x = tmin, fill = name)) +
   geom_density(alpha = 0.3) #transparency
@@ -169,10 +169,34 @@ weather_df %>%
 
 ### Box plots
 
-```{r}
+```{r box plot}
 weather_df %>%
-  ggplot(aes(x = name, y = tmin)) +
+  ggplot(aes(x = name, y = tmin)) + #display minimum temperature by city
   geom_boxplot()
+```
+
+###Trendy plots
+
+Violin plots are good for visualizing skewed data:
+
+```{r violin plot}
+weather_df %>%
+  ggplot(aes(x = name, y = tmin, fill = name)) +
+  geom_violin(alpha = 0.5) +
+  stat_summary(fun = "median") #shows median. Default is mean and SD if undefined.
+```
+
+Ridge plots were the trendiest plot of 2017, and were a replacement for both boxplots and violin plots. They’re implemented in the ggridges package, and are nice if you have lots of categories in which the shape of the distribution matters.
+```{r}
+ggplot(weather_df, aes(x = tmax, y = name)) + 
+  geom_density_ridges(scale = .85)
+```
+
+## Saving and embedding plots
+
+You will, on occasion, need to save a plot to a specific file. Don’t use the built-in “Export” button! If you do, your figure is not reproducible – no one will know how your plot was exported. Instead, use ggsave() by explicitly creating the figure and exporting; ggsave will guess the file type you prefer and has options for specifying features of the plot. In this setting, it’s often helpful to save the ggplot object explicitly and then export it (using relative paths!).
+```{r}
+
 ```
 
 ```{r}
