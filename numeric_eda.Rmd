@@ -119,14 +119,58 @@ weather_df %>%
   mutate(cold = case_when(
     tmax <  5 ~ "cold",
     tmax >= 5 ~ "not_cold",
-    TRUE     ~ ""
+    TRUE     ~ "" #if neither of the above are true, leave blank
   )) %>% 
   filter(name != "Waikiki_HA") %>% 
   janitor::tabyl(name, cold) #janitor package has tons of functions
 ```
 
 
+## General Summaries
 
+Standard statistical summaries are regularly computed in summarize() using functions like mean(), median(), var(), sd(), mad(), IQR(), min(), and max(). To use these, you indicate the variable to which they apply and include any additional arguments as necessary.
+
+```{r}
+weather_df %>%
+  group_by(name, month) %>%
+  summarize(
+    mean_tmax = mean(tmax),
+    mean_prec = mean(prcp, na.rm = TRUE),
+    median_tmax = median(tmax),
+    sd_tmax = sd(tmax))
+```
+
+Same summary across multiple variables:
+```{r}
+weather_df %>%
+  group_by(name, month) %>%
+  summarize(across(prcp:tmin, mean))
+```
+
+This is a dataframe!!
+
+The fact that summarize() produces a dataframe is important (and consistent with other functions in the tidyverse). You can incorporate grouping and summarizing within broader analysis pipelines. For example, we can take create a plot based on the monthly summary:
+
+```{r}
+weather_df %>%
+  group_by(name, month) %>%
+  summarize(mean_tmax = mean(tmax, na.rm = TRUE)) %>%
+  ggplot(aes(x = month, y = mean_tmax, color = name)) + 
+    geom_point() + geom_line() + 
+    theme(legend.position = "bottom")
+```
+The results of group_by() and summarize() are generally tidy, but presenting reader-friendly results for this kind of exploratory analysis often benefits from some un-tidying. For example, the table below shows month-by-month average max temperatures in a more human-readable format.
+
+```{r}
+weather_df %>%
+  group_by(name, month) %>%
+  summarize(mean_tmax = mean(tmax, na.rm = TRUE)) %>%
+  pivot_wider(
+    names_from = name,
+    values_from = mean_tmax
+  ) %>%
+  knitr::kable(digit = 2) #formats output as table for (R)MD file
+```
 
 
 
