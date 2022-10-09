@@ -72,7 +72,7 @@ weather_df %>%
 
 Playing with color (USE **VIRIDIS** METHOD INSTEAD):
 ```{r}
-weather_df %>%
+ggp_weather = weather_df %>%
   ggplot(aes(x = tmin, y = tmax, color = name)) +
   geom_point(alpha = 0.5) +
   labs( #label graphics
@@ -84,6 +84,19 @@ weather_df %>%
   viridis::scale_color_viridis(
     name = "Location",
     discrete = TRUE)
+```
+
+## Themes
+Non-data features of the plot:
+
+```{r}
+ggp_weather +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+#theme(legend.position = "none") gets rid of the legend, but this is not recommended
+#google ggplot theme for lots of themes out there
+ 
 ```
 
 
