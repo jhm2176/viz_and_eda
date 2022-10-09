@@ -172,5 +172,60 @@ weather_df %>%
   knitr::kable(digit = 2) #formats output as table for (R)MD file
 ```
 
+## Grouped mutates
 
+```{r}
+weather_df %>%
+  group_by(name) %>%
+  mutate(
+    mean_tmax = mean(tmax, na.rm = TRUE), #na.rm=true excludes misssing values in calculationas
+    centered_tmax = tmax - mean_tmax) %>%
+  ggplot(aes(x = date, y = centered_tmax, color = name)) +
+  geom_point()
+```
 
+## Window Functions
+
+### Ranking
+The previous example used mean() to compute the mean within each group, which was then subtracted from the observed max tempurature. mean() takes n inputs and produces a single output.
+
+Window functions, in contrast, take n inputs and return n outputs, and the outputs depend on all the inputs. There are several categories of window functions; you’re most likely to need ranking functions and offsets, which we illustrate below.
+
+First, we can find the max temperature ranking within month.
+```{r}
+weather_df %>%
+  group_by(name, month) %>%
+  mutate(tmax_rank = min_rank(tmax)) #min_rank is the name of the built in function
+```
+
+This sort of ranking is useful when filtering data based on rank. We could, for example, keep only the day with the lowest max temperature within each month:
+```{r}
+weather_df %>%
+  group_by(name, month) %>%
+  filter(min_rank(tmax) < 2)
+```
+
+We could also keep the three days with the highest max temperature:
+```{r}
+weather_df %>%
+  group_by(name, month) %>%
+  mutate(
+    tmax_rank = min_rank(tmax)) %>%
+      filter(tmax_rank < 4) %>%
+      arrange(name, month, tmax_rank)
+```
+
+### Lagged observations
+
+Offsets, especially lags, are used to compare an observation to it’s previous value. This is useful, for example, to find the day-by-day change in max temperature within each station over the year:
+
+```{r}
+weather_df %>%
+  group_by(name) %>%
+  mutate(
+    yesterday_tmax = lag(tmax),
+    tmax_change = tmax - yesterday_tmax) %>%
+  summarize(
+    sd_tmax_chnge = sd(tmax_change, na.rm = TRUE)
+  )
+```
