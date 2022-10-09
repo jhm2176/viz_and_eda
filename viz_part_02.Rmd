@@ -7,6 +7,7 @@ output: github_document
 ```{r setup}
 library(tidyverse)
 library(ggridges)
+library(patchwork)
 ```
 
 ## Load the weather data
@@ -97,6 +98,113 @@ ggp_weather +
 #theme(legend.position = "none") gets rid of the legend, but this is not recommended
 #google ggplot theme for lots of themes out there
  
+```
+
+## Data in geom()
+
+We’ve seen that where an aesthetic gets mapped to a variable matters – setting aes(color = name) in ggplot can yield different results than the same setting in geom_point(). This arises from the way that ggplot objects inherit aesthetic mappings, and it turns out there’s a similar thing with the data used to make a plot.
+
+In a contrived example, we can split weather_df into separate datasets for Central Park and Waikiki. Then we use one in the ggplot() call and another in geom_line():
+
+```{r}
+central_park_df =
+  weather_df %>%
+  filter(name == "CentralPark_NY")
+
+waikiki_df = 
+  weather_df %>%
+  filter(name == "Waikiki_HA")
+
+ggplot(waikiki_df, aes(x = date, y = tmax)) +
+  geom_point() +
+  geom_line(data = central_park_df)
+```
+
+More realistically, it’s sometimes necessary to overlay data summaries on a plot of the complete data. Depending on the setting, one way to do this is to create a “summary” dataframe and use that when adding a new geom to a ggplot based on the full data.
+
+## Patchwork ...
+
+We’ve seen facetting as an approach to create the “same plot” for several levels of a categorical variable, and this can get you pretty far. Sometimes, though, you want to show two or three fundamentally different plots in the same graphic: you may want to juxtapose a scatterplot and a boxplot, or show scatterplots illustrating relationships between different variables. In this case, a solution is to create each of the panels you want separately and combine panels using tools in the patchwork package:
+
+```{r}
+tmax_tmin_plot =
+  weather_df %>%
+  ggplot(aes(x = tmin, y = tmax, color = name)) +
+  geom_point() +
+  theme(legend.position = "none")
+
+prcp_dens_plot = 
+  weather_df %>% 
+  filter(prcp > 0) %>% 
+  ggplot(aes(x = prcp, fill = name)) + 
+  geom_density(alpha = .5) + 
+  theme(legend.position = "none")
+
+tmax_date_plot = 
+  weather_df %>% 
+  ggplot(aes(x = date, y = tmax, color = name)) + 
+  geom_point(alpha = .5) +
+  geom_smooth(se = FALSE) + 
+  theme(legend.position = "bottom")
+```
+
+Use patchwork package to display plots together. '+' is side by side, '/' is on top.:
+
+```{r}
+tmax_tmin_plot + prcp_dens_plot
+```
+
+```{r}
+(tmax_tmin_plot + prcp_dens_plot) / tmax_date_plot
+```
+
+## Data Manipulation
+
+Often, struggles with ggplot are struggles with data tidying in disguise. Viewing data manipulation as part of the visualization process will often be your path to success! Put differently, the behavior of your plot depends on the data you’ve supplied; in some cases, it’s easier to control behavior through data manipulation than it is through the plot code.
+
+This is particularly true for the order of categorical or factor variables in plots. Categorical variables will be ordered alphabetically; factors will follow the specified order level that underlies the variable labels. You can change the order level of a factor variable to your specified preference using forcats::fct_relevel or according to the value of another variable using forcats::fct_reorder.
+
+A first example reorders name “by hand”:
+
+```{r}
+weather_df %>%
+  ggplot(aes(x = name, y = tmax)) +
+  geom_boxplot()
+
+weather_df %>%
+  mutate(name = forcats::fct_relevel(name, c("Waikiki_HA", "CentralPark_NY", "Waterhole_WA"))) %>% 
+  ggplot(aes(x = name, y = tmax)) + 
+  geom_boxplot()
+```
+
+A second example reorders name according to tmax values in each name. This stuff is related to data manipulation (i.e. mutate()), NOT ggplot itself:
+
+```{r}
+weather_df %>%
+  mutate(name = forcats::fct_reorder(name, tmax)) %>% 
+  ggplot(aes(x = name, y = tmax)) + 
+  geom_boxplot()
+```
+
+Our emphasis on data tidiness in previous examples is helpful in visualization. The code below imports and tidies the PULSE data, and creates a plot showing BDI score across visits. Some steps that are helpful in retrospect are using pivot_longer to organize the BDI score and visit time variables, and organizing the visit time variable into a factor with an informative ordering.
+
+```{r}
+pulse_df = 
+  haven::read_sas("./data/public_pulse_data.sas7bdat") %>%
+  janitor::clean_names() %>%
+  pivot_longer(
+    bdi_score_bl:bdi_score_12m,
+    names_to = "visit", 
+    names_prefix = "bdi_score_",
+    values_to = "bdi") %>%
+  select(id, visit, everything()) %>%
+  mutate(
+    visit = fct_relevel(visit, "bl")
+  )
+
+ggplot(pulse_df, aes(x = visit, y = bdi)) + 
+  geom_boxplot()
+
 ```
 
 
