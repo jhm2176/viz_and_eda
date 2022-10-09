@@ -1,0 +1,132 @@
+---
+title: "Numeric EDA"
+output: github_document
+---
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load libraries}
+library(tidyverse)
+```
+
+## Let's import data
+
+```{r}
+weather_df =  
+  rnoaa::meteo_pull_monitors(
+    c("USW00094728", "USC00519397", "USS0023B17S"),
+    var = c("PRCP", "TMIN", "TMAX"), 
+    date_min = "2017-01-01",
+    date_max = "2017-12-31") %>%
+  mutate(
+    name = recode(
+      id, 
+      USW00094728 = "CentralPark_NY", 
+      USC00519397 = "Waikiki_HA",
+      USS0023B17S = "Waterhole_WA"),
+    tmin = tmin / 10,
+    tmax = tmax / 10,
+    month = lubridate::floor_date(date, unit = "month")) %>% #CREATE NEW MONTH VAR
+  select(name, id, everything())
+```
+
+## `group_by()`
+
+Doesn't change data set at all, but displays number of distinct groups of specified variable(s). Can group by multiple variables.
+
+```{r}
+weather_df %>%
+  group_by(name, month)
+```
+In this case, this returns [36] - 12 months for 3 groups.
+
+## `summarize()`
+
+Let's group and then summarize!
+
+```{r}
+weather_df %>%
+  group_by(name) %>%
+  summarize(
+    n_obs = n() #n_obs is name of new variable, n() returns counts for each group
+  )
+
+weather_df %>%
+  group_by(name, month) %>%
+  summarize(
+    n_obs = n() #n_obs is name of new variable, n() returns counts for each group
+  )
+```
+
+Can we count in other ways? Yes, using `count()`. DON'T use `table()` for counts.
+
+```{r}
+weather_df %>%
+  count(name)
+
+weather_df %>%
+  count(name, month)
+```
+
+You can have multiple summaries:
+
+```{r}
+weather_df %>%
+  group_by(month) %>%
+  summarize(
+    n_obs = n(),
+    n_dist = n_distinct(date)
+  )
+```
+
+## 2x2 tables
+
+```{r}
+weather_df %>% 
+  mutate(
+    cold = case_when(
+      tmax <  5 ~ "cold",
+      tmax >= 5 ~ "not_cold",
+      TRUE      ~ ""
+  )) %>% 
+  filter(name != "Waikiki_HA") %>% 
+  group_by(name, cold) %>% 
+  summarize(count = n())
+```
+
+This is a “tidy” table, and it’s also a data frame. You could re-organize into a more standard (non-tidy) 2x2 table using pivot_wider, or you could use janitor::tabyl (BEST):
+
+```{r}
+#with pivot_wider
+weather_df %>% 
+  mutate(cold = case_when(
+    tmax <  5 ~ "cold",
+    tmax >= 5 ~ "not_cold",
+    TRUE     ~ ""
+  )) %>% 
+  filter(name != "Waikiki_HA") %>% 
+  group_by(name, cold) %>% 
+  summarize(
+    n_obs = n()) %>%
+  pivot_wider(
+    names_from = cold,
+    values_from = n_obs)
+
+#with janitor::tabyl (QUICKER + EASIER METHOD)
+weather_df %>% 
+  mutate(cold = case_when(
+    tmax <  5 ~ "cold",
+    tmax >= 5 ~ "not_cold",
+    TRUE     ~ ""
+  )) %>% 
+  filter(name != "Waikiki_HA") %>% 
+  janitor::tabyl(name, cold) #janitor package has tons of functions
+```
+
+
+
+
+
+
